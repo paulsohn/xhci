@@ -4,6 +4,7 @@ use accessor::array;
 use accessor::Mapper;
 
 pub use capability::Capability;
+pub use doorbell::Doorbell;
 pub use operational::{Operational, PortRegisterSet};
 pub use runtime::InterrupterRegisterSet;
 pub use runtime::Runtime;
@@ -14,6 +15,8 @@ pub mod operational;
 pub mod runtime;
 
 /// The access point to xHCI registers.
+/// To index `port_register_set` and `interrupter_register_set`,
+/// use trait `xhci::accessor::array::BoundSetGeneric` and call method `.set_at(index)`.
 #[derive(Debug)]
 pub struct Registers<M>
 where
@@ -22,15 +25,15 @@ where
     /// Host Controller Capability Register
     pub capability: Capability<M>,
     /// Doorbell Array
-    pub doorbell: array::ReadWrite<doorbell::Register, M>,
+    pub doorbell: array::ReadWrite<Doorbell, M>,
     /// Host Controller Operational Register
     pub operational: Operational<M>,
-    /// Port Register Set Array
+    /// Port Register Set Array.
     pub port_register_set: array::ReadWrite<PortRegisterSet, M>,
     /// Runtime Registers
     pub runtime: Runtime<M>,
     /// Interrupter Register Set Array
-    pub interrupter_register_set: InterrupterRegisterSet<M>,
+    pub interrupter_register_set: array::ReadWrite<InterrupterRegisterSet, M>,
 }
 impl<M> Registers<M>
 where
@@ -75,7 +78,7 @@ where
     /// ```
     pub unsafe fn new(mmio_base: usize, mapper: M) -> Self {
         let capability = Capability::new(mmio_base, &mapper);
-        let doorbell = doorbell::Register::new(mmio_base, &capability, mapper.clone());
+        let doorbell = doorbell::Doorbell::new(mmio_base, &capability, mapper.clone());
         let operational =
             Operational::new(mmio_base, capability.caplength.read_volatile(), &mapper);
         let port_register_set = PortRegisterSet::new(mmio_base, &capability, mapper.clone());
