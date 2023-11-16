@@ -1,10 +1,11 @@
 //! Host Controller Runtime Registers.
 
 use super::capability::RuntimeRegisterSpaceOffset;
+use accessor::BoundedStructuralOf;
+use accessor::single;
+use accessor::array;
 use accessor::marker::AccessorTypeSpecifier;
 use accessor::marker::Readable;
-use accessor::single;
-use accessor::array::{self, BoundSetGenericOf};
 use accessor::Mapper;
 use core::convert::TryFrom;
 use core::convert::TryInto;
@@ -59,7 +60,7 @@ impl_debug_from_methods! {
 
 /// Interrupter Register Set
 #[repr(C)]
-#[derive(Copy, Clone, Debug, BoundSetGenericOf)]
+#[derive(Copy, Clone, Debug, BoundedStructuralOf)]
 pub struct InterrupterRegisterSet {
     /// Interrupter Management Register
     pub iman: InterrupterManagementRegister,
@@ -86,17 +87,17 @@ impl InterrupterRegisterSet {
     /// # Panics
     ///
     /// This method panics if the base address of the Interrupter Register Set Array is not aligned correctly.
-    pub unsafe fn new<M, A>(mmio_base: usize, rtoff: RuntimeRegisterSpaceOffset, mapper: M) -> array::Generic<Self, M, A>
+    pub unsafe fn new<M, A>(
+        mmio_base: usize,
+        rtoff: RuntimeRegisterSpaceOffset,
+        mapper: M,
+    ) -> array::Generic<Self, M, A>
     where
         M: Mapper,
         A: AccessorTypeSpecifier + Readable,
     {
         let base = mmio_base + usize::try_from(rtoff.get()).unwrap() + 0x20;
-        array::Generic::new(
-            base,
-            1024,
-            mapper,
-        )
+        array::Generic::new(base, 1024, mapper)
     }
 }
 

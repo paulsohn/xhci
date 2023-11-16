@@ -16,7 +16,7 @@ pub mod runtime;
 
 /// The access point to xHCI registers.
 /// To index `port_register_set` and `interrupter_register_set`,
-/// use trait `xhci::accessor::array::BoundSetGeneric` and call method `.set_at(index)`.
+/// use trait `xhci::accessor::array::{BoundedStructural, BoundedStructuralMut}` and call method `.structural_at(index)`.
 #[derive(Debug)]
 pub struct Registers<M>
 where
@@ -32,9 +32,10 @@ where
     pub port_register_set: array::ReadWrite<PortRegisterSet, M>,
     /// Runtime Registers
     pub runtime: Runtime<M>,
-    /// Interrupter Register Set Array
+    /// Interrupter Register Set Array.
     pub interrupter_register_set: array::ReadWrite<InterrupterRegisterSet, M>,
 }
+
 impl<M> Registers<M>
 where
     M: Mapper + Clone,

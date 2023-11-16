@@ -59,6 +59,7 @@
     missing_debug_implementations
 )]
 #![allow(clippy::missing_panics_doc)]
+#![feature(allocator_api)]
 
 pub use accessor;
 pub use extended_capabilities::ExtendedCapability;

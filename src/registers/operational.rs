@@ -1,8 +1,9 @@
 //! Host Controller Operational Registers
 
 use super::capability::{Capability, CapabilityRegistersLength};
-use accessor::array::{self, BoundSetGenericOf};
+use accessor::BoundedStructuralOf;
 use accessor::single;
+use accessor::array;
 use accessor::Mapper;
 use bit_field::BitField;
 use core::convert::TryFrom;
@@ -291,7 +292,7 @@ impl_debug_from_methods! {
 
 /// Port Register Set
 #[repr(C)]
-#[derive(Copy, Clone, Debug, BoundSetGenericOf)]
+#[derive(Copy, Clone, Debug, BoundedStructuralOf)]
 pub struct PortRegisterSet {
     /// Port Status and Control Register
     pub portsc: PortStatusAndControlRegister,
