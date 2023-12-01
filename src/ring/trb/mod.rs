@@ -83,7 +83,7 @@ macro_rules! impl_default_simply_adds_trb_id {
     ($name:ident,$full:expr) => {
         impl $name{
             paste::paste! {
-                #[doc = "Creates a new " $full ".\n\nThis method sets the sets the value of the TRB Type field properly. All the other fieldds are set to 0."]
+                #[doc = "Creates a new " $full ".\n\nThis method sets the sets the value of the TRB Type field properly. All the other fields are set to 0."]
                 #[must_use]
                 pub fn new()->Self{
                     *Self([0;4]).set_trb_type()

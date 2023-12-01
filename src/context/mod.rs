@@ -45,6 +45,11 @@ pub type InputControl32Byte = InputControl<8>;
 /// 64 byte Input Control Context.
 pub type InputControl64Byte = InputControl<16>;
 
+/// 32 byte Output Context.
+pub type Output32Byte = Output<8>;
+/// 64 byte Output Context.
+pub type Output64Byte = Output<16>;
+
 /// 32 byte Device Context.
 pub type Device32Byte = Device<8>;
 /// 64 byte Device Context.
@@ -63,7 +68,7 @@ pub type Endpoint64Byte = Endpoint<16>;
 /// Input Context.
 ///
 /// Refer to [`InputHandler`] for the available methods.
-#[repr(C)]
+#[repr(C, align(16))]
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct Input<const N: usize> {
     control: InputControl<N>,
@@ -235,6 +240,43 @@ pub trait InputControlHandler: AsRef<[u32]> + AsMut<[u32]> {
             "The index of Add Context flag must be less than 32."
         );
     }
+}
+
+/// The Output Context, which is simply a wrapper of Device Context.
+/// 
+/// This type is introduced to enforce 64-byte alignment to Device Context.
+///
+/// Refer to [`OutputHandler`] for the available methods.
+#[repr(C, align(64))]
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub struct Output<const N: usize> {
+    device: Device<N>,
+}
+impl_constructor!(Output, "Output");
+impl<const N: usize> Output<N> {
+    const fn new() -> Self {
+        Self {
+            device: Device::new(),
+        }
+    }
+}
+impl<const N: usize> OutputHandler for Output<N> {
+    fn device(&self) -> &dyn DeviceHandler {
+        &self.device
+    }
+
+    fn device_mut(&mut self) -> &mut dyn DeviceHandler {
+        &mut self.device
+    }
+}
+
+/// A trait to handle Output Context.
+pub trait OutputHandler {
+    /// Returns a handler of Device Context.
+    fn device(&self) -> &dyn DeviceHandler;
+
+    /// Returns a mutable handler of Device Context.
+    fn device_mut(&mut self) -> &mut dyn DeviceHandler;
 }
 
 /// Device Context.
