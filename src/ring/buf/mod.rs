@@ -2,21 +2,40 @@
 
 extern crate alloc;
 
+use core::mem::ManuallyDrop;
+
 // the allocator should not only allocate the memory,
 // but should also map it into the virtual address and return it.
-use alloc::alloc::Allocator;
+use alloc::alloc::{Allocator, Layout};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-// todo: proper allignment
+/// The ring buffer base alignment.
+pub const RING_BUF_BASE_ALIGN: usize = 64;
+
 fn alloc_buf<T, A>(size: usize, allocator: A, value: T) -> Box<[T], A>
 where
     T: Copy,
     A: Allocator,
 {
-    let mut vec = Vec::<T, A>::new_in(allocator);
-    vec.resize(size, value);
-    vec.into_boxed_slice()
+    unsafe {
+        let ptr = allocator.allocate(
+            Layout::from_size_align(size * core::mem::size_of::<T>(),
+            RING_BUF_BASE_ALIGN).unwrap()
+        )
+        .ok()
+        .map(|ptr| ptr.as_ptr() /* .as_mut_ptr() */ as *mut u8 as *mut T)
+        .unwrap_or(core::ptr::null_mut());
+
+        let buf_ptr = core::ptr::slice_from_raw_parts_mut(ptr, size);
+
+        (&mut *buf_ptr).fill(value);
+
+        Box::from_raw_in(
+            buf_ptr,
+            allocator
+        )
+    }
 }
 
 unsafe fn boxed_slice_from_slice_in<T, A>(slice: &mut [T], allocator: A) -> Box<[T], A>
@@ -200,7 +219,7 @@ where
     /// The ring segments, in the form of `EventRingSegmentTableEntry` rather than slices.
     seg_table: Vec<EventRingSegmentTableEntry, A>,
     /// The vector of allocators. Required to manually drop ring segments.
-    allocators: Vec<A, A>,
+    allocators: Vec<ManuallyDrop<A>, A>,
     /// Current cycle bit.
     cycle_bit: bool,
     /// The default allocator for this ring.
@@ -214,16 +233,14 @@ where
 {
     /// Set event ring segment index and dequeue pointer.
     fn set_erdp(&mut self, seg_idx: u8, dequeue_pointer: u64) {
-        // @todo: let this write structural
-        self.interrupter.update_volatile(|intr| {
-            intr.erdp.set_dequeue_erst_segment_index(seg_idx)
-                    .set_event_ring_dequeue_pointer(dequeue_pointer);
+        use accessor::single::BoundedStructuralMut;
+
+        self.interrupter.structural_mut().erdp.update_volatile(|erdp| {
+            erdp
+                // .clear_event_handler_busy()
+                .set_dequeue_erst_segment_index(seg_idx)
+                .set_event_ring_dequeue_pointer(dequeue_pointer);
         });
-        // self.interrupter.structural().erdp
-        //     .update_volatile(|erdp| {
-        //         erdp.set_dequeue_erst_segment_index(seg_idx)
-        //             .set_event_ring_dequeue_pointer(dequeue_pointer);
-        //     });
     }
 
     /// Create an uninitialized Event Ring from interrupter and the allocator.
@@ -261,8 +278,8 @@ where
         er.add_segment(size);
 
         // initialize dequeue pointer register.
-        let base = er.seg_table[0].as_mut_slice().as_mut_ptr() as usize as u64;
-        er.set_erdp(0, base);
+        // let base = er.seg_table[0].as_mut_slice().as_mut_ptr() as usize as u64;
+        // er.set_erdp(0, base);
 
         er
     }
@@ -280,30 +297,31 @@ where
         let seg: Segment<A> = alloc_buf(
             size,
             self.allocator.clone(),
-            Block::zero_with_cycle_bit(self.cycle_bit),
+            Block::zero_with_cycle_bit(!self.cycle_bit),
         );
 
         let (ptr, al) = Box::into_raw_with_allocator(seg);
+        let buf = unsafe { &*ptr };
         self.seg_table
-            .push(unsafe { EventRingSegmentTableEntry::from_buf(&*ptr) });
-        self.allocators.push(al);
+            .push(unsafe { EventRingSegmentTableEntry::from_buf(buf) });
+        self.allocators.push(ManuallyDrop::new(al));
+
+        // todo: can we guarantee that seg_table base is 64-byte alligned?
 
         // update interrupter registers.
         let base = self.seg_table.as_mut_ptr() as usize as u64;
         let len = self.seg_table.len() as u16;
 
-        // @todo: let this update structural
-        self.interrupter.update_volatile(|intr|{
-            intr.erstba.set(base);
-            intr.erstsz.set(len); // erstsz is in the size of len.
-        });
+        if len == 1 { // init. set ERDP here.
+            self.set_erdp(0, buf.as_ptr() as usize as u64);
+        }
 
-        // let mut intr = self.interrupter.structural();
+        use accessor::single::BoundedStructuralMut;
+        let mut intr = self.interrupter.structural_mut();
 
-        // intr.erstba.update_volatile(|erstba| erstba.set(base));
-        // intr.erstsz.update_volatile(|erstsz| {
-        //     erstsz.set(len) 
-        // });
+        // event ring is enabled by erstba write. erstba should be updated last.
+        intr.erstsz.update_volatile(|erstsz| erstsz.set(len));
+        intr.erstba.update_volatile(|erstba| erstba.set(base));
     }
 
     /// Performs dequeue operation, and returns the block if not empty.
@@ -319,9 +337,8 @@ where
 
         // Get the dequeue pointer.
         let (seg_cur, dq_ptr) = {
-            // @todo: let this read structural
-            let erdp = self.interrupter.read_volatile().erdp;
-            // let erdp = self.interrupter.structural().erdp.read_volatile();
+            use accessor::single::BoundedStructural;
+            let erdp = self.interrupter.structural().erdp.read_volatile();
             (
                 erdp.dequeue_erst_segment_index() as usize,
                 erdp.event_ring_dequeue_pointer() as usize as *const Block,
@@ -378,18 +395,12 @@ where
     M: accessor::mapper::Mapper,
 {
     fn drop(&mut self) {
-        let allocators = self.allocators.iter();
+        let allocators = self.allocators.iter_mut();
         for (erst, al) in self.seg_table.iter_mut().zip(allocators) {
-            let _b = unsafe { boxed_slice_from_slice_in(erst.as_mut_slice(), al) };
+            let a = unsafe { ManuallyDrop::take(al) };
+            let _b = unsafe { boxed_slice_from_slice_in(erst.as_mut_slice(), a) };
             // `_b` is dropped, so that the allocated slice from the erst entry is freed.
         }
         // `self.seg_table` and `self.allocators` are also dropped.
     }
 }
-
-// fn foo() {
-//     use accessor::array::BoundedStructuralMut;
-
-//     let interrupter_reg_set_array: ReadWrite<InterrupterRegisterSet, accessor::mapper::Identity> = todo!();
-//     let erc = EventRingController::new(1024, alloc::alloc::Global, interrupter_reg_set_array.structural_at_mut(1));
-// }

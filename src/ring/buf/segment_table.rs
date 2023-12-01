@@ -13,31 +13,24 @@ use core::ops::{Index, IndexMut};
 pub struct EventRingSegmentTableEntry([u32; 4]);
 
 impl EventRingSegmentTableEntry {
-    /// Create new segment table entry from base address `base` and entry count `len`.
-    /// `len` should be the entry count, not the size in bytes.
-    ///
+    /// Create new segment table entry from a block buffer.
+    /// 
     /// # Panics
     ///
     /// This method will panic if `len >= 4096`.
-    pub unsafe fn new(base: *const Block, len: usize) -> Self {
-        let size_in_bytes = len * core::mem::size_of::<Block>();
-        assert!(size_in_bytes <= u16::MAX as usize);
+    pub unsafe fn from_buf(buf: &[Block]) -> Self {
+        assert!(buf.len() <= u16::MAX as usize);
 
         let mut entry = Self([0; 4]);
         entry
-            .set_ring_segment_base_address(base as usize as u64)
-            .set_ring_segment_size((len * core::mem::size_of::<Block>()) as u16);
+            .set_ring_segment_base_address(buf.as_ptr() as usize as u64)
+            .set_ring_segment_size(buf.len() as u16);
         entry
-    }
-
-    /// Create new segment table entry from a block buffer.
-    pub unsafe fn from_buf(buf: &[Block]) -> Self {
-        Self::new(buf.as_ptr(), buf.len())
     }
 
     /// Returns the entry count of the segment.
     pub fn len(&self) -> usize {
-        return self.ring_segment_size() as usize / core::mem::size_of::<Block>();
+        return self.ring_segment_size() as usize;
     }
 
     /// Returns the slice that this entry is representing.
@@ -63,7 +56,7 @@ impl EventRingSegmentTableEntry {
 
 impl EventRingSegmentTableEntry {
     /// Returns the value of the Ring Segment Base Address field.
-    pub(crate) unsafe fn ring_segment_base_address(&self) -> u64 {
+    pub unsafe fn ring_segment_base_address(&self) -> u64 {
         let l: u64 = self.0[0].into();
         let u: u64 = self.0[1].into();
 
@@ -75,7 +68,7 @@ impl EventRingSegmentTableEntry {
     /// # Panics
     ///
     /// This method panics if `p` is not 64-byte aligned.
-    pub(crate) unsafe fn set_ring_segment_base_address(&mut self, p: u64) -> &mut Self {
+    pub unsafe fn set_ring_segment_base_address(&mut self, p: u64) -> &mut Self {
         assert_eq!(
             p % 64,
             0,
@@ -92,22 +85,22 @@ impl EventRingSegmentTableEntry {
 
     /// Returns the value of the Ring Segment Size field.
     ///
-    /// This field represents size in bytes.
-    pub(crate) fn ring_segment_size(&self) -> u16 {
+    /// This field represents entry count.
+    pub fn ring_segment_size(&self) -> u16 {
         self.0[2].get_bits(0..16) as _
     }
     /// Sets the value of the Ring Segment Size field.
     ///
-    /// The value should be size in bytes.
-    pub(crate) unsafe fn set_ring_segment_size(&mut self, v: u16) -> &mut Self {
+    /// The value should be entry count.
+    pub unsafe fn set_ring_segment_size(&mut self, v: u16) -> &mut Self {
         self.0[2].set_bits(0..16, v.into());
         self
     }
     // rw_field!([2](0..16), ring_segment_size, "Ring Segment Size", u16);
 
     /// Returns the value of the ring segment end address.
-    pub(crate) unsafe fn ring_segment_bound_address(&self) -> u64 {
-        self.ring_segment_base_address() + (self.ring_segment_size() as u64)
+    pub unsafe fn ring_segment_bound_address(&self) -> u64 {
+        self.ring_segment_base_address() + (core::mem::size_of::<Block>() * self.ring_segment_size() as usize) as u64
     }
 }
 
