@@ -69,5 +69,5 @@ mod macros;
 
 pub mod context;
 pub mod extended_capabilities;
-pub mod registers;
+pub mod registers; pub mod registers_volatile;
 pub mod ring;
