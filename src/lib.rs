@@ -61,11 +61,11 @@
 #![allow(clippy::missing_panics_doc)]
 
 pub use accessor;
-pub use registers_volatile::Registers;
+pub use registers::Registers;
 
 #[macro_use]
 mod macros;
 
 pub mod context;
-pub mod registers_volatile;
+pub mod registers;
 pub mod ring;
