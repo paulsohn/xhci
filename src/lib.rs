@@ -61,13 +61,11 @@
 #![allow(clippy::missing_panics_doc)]
 
 pub use accessor;
-pub use extended_capabilities::ExtendedCapability;
-pub use registers::Registers;
+pub use registers_volatile::Registers;
 
 #[macro_use]
 mod macros;
 
 pub mod context;
-pub mod extended_capabilities;
-pub mod registers; pub mod registers_volatile;
+pub mod registers_volatile;
 pub mod ring;
