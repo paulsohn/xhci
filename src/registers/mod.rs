@@ -82,10 +82,10 @@ impl Registers<'_> {
 
     /// Returns an extended capability list.
     pub fn extended_capabilities(&self) -> List<'_> {
-        // SAFETY : although `dummy` is an invalid extended capability pointer, but it never gets read.
+        // SAFETY : `dummy` is an invalid extended capability pointer, but it never gets read.
         // if there are no extended capabilities, then the list is empty.
         unsafe {
-            let dummy = VolatilePtr::new(self.capability.as_raw_ptr().cast());
+            let dummy = addr_to_vptr(vptr_to_addr(self.capability));
             List::new(
                 dummy,
                 self.extended_capability_list_start
@@ -111,6 +111,6 @@ pub(crate) unsafe fn addr_len_to_vptr<T>(base: usize, len: usize) -> VolatilePtr
     )
 }
 
-pub(crate) fn vptr_to_addr<T>(vptr: VolatilePtr<'_, T>) -> usize {
+pub(crate) fn vptr_to_addr<T, A>(vptr: VolatilePtr<'_, T, A>) -> usize {
     vptr.as_raw_ptr().as_ptr() as usize
 }
