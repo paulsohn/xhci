@@ -5,16 +5,17 @@ use core::ptr::NonNull;
 use volatile::VolatilePtr;
 use volatile::access::ReadOnly;
 
-pub use capability::Capability;
-pub use doorbell::Doorbell;
-pub use operational::{Operational, PortRegisterSet};
-pub use runtime::InterrupterRegisterSet;
-pub use runtime::Runtime;
-
 pub mod capability;
-pub mod doorbell;
 pub mod operational;
 pub mod runtime;
+pub mod doorbell;
+pub mod extended_capabilities;
+
+pub use capability::Capability;
+pub use operational::{Operational, PortRegisterSet};
+pub use runtime::{Runtime, InterrupterRegisterSet};
+pub use doorbell::Doorbell;
+pub use extended_capabilities::{CapabilityHeader, List};
 
 /// The access point to xHCI registers.
 #[allow(missing_debug_implementations)]
@@ -31,13 +32,14 @@ pub struct Registers<'r> {
     pub interrupter_register_set_array: VolatilePtr<'r, [InterrupterRegisterSet]>,
     /// Doorbell Array
     pub doorbell_array: VolatilePtr<'r, [Doorbell]>, // nit: this should be write only
+    /// List of Extended Capability Registers
+    extended_capability_list_start: VolatilePtr<'r, CapabilityHeader>,
 }
-
 impl Registers<'_> {
     /// Creates an instance of [`Regs`].
     pub unsafe fn new(mmio_base: usize) -> Self {
         assert!(mmio_base != 0, "`mmio_base` should be non null.");
-
+        
         let capability = addr_to_vptr(mmio_base).read_only();
         let cap_value: Capability = capability.read();
 
@@ -59,6 +61,12 @@ impl Registers<'_> {
         let db_arr_len = cap_value.hcsparams1.number_of_device_slots() as usize;
         let doorbell_array = addr_len_to_vptr(db_arr_base, db_arr_len);
 
+        // If `hccparams1.xhci_extended_capabilities_pointer` is zero,
+        // then the `extended_capability_list_start` field might be invalid, pointing `mmio_base`.
+        // Even in that case, the returning extended capability list is valid.
+        let ext_cap_base = mmio_base + ((cap_value.hccparams1.xhci_extended_capabilities_pointer() as usize) << 2);
+        let extended_capability_list_start = addr_to_vptr(ext_cap_base);
+
         Self {
             capability,
             operational,
@@ -68,17 +76,31 @@ impl Registers<'_> {
             interrupter_register_set_array,
 
             doorbell_array,
+            extended_capability_list_start,
+        }
+    }
+
+    /// Returns an extended capability list.
+    pub fn extended_capabilities(&self) -> List<'_> {
+        // SAFETY : although `dummy` is an invalid extended capability pointer, but it never gets read.
+        // if there are no extended capabilities, then the list is empty.
+        unsafe {
+            let dummy = VolatilePtr::new(self.capability.as_raw_ptr().cast());
+            List::new(
+                dummy,
+                self.extended_capability_list_start
+            )
         }
     }
 }
 
-unsafe fn addr_to_vptr<T>(addr: usize) -> VolatilePtr<'static, T> {
+pub(crate) unsafe fn addr_to_vptr<T>(addr: usize) -> VolatilePtr<'static, T> {
     VolatilePtr::new(
         NonNull::new(addr as *mut T).unwrap()
     )
 }
 
-unsafe fn addr_len_to_vptr<T>(base: usize, len: usize) -> VolatilePtr<'static, [T]> {
+pub(crate) unsafe fn addr_len_to_vptr<T>(base: usize, len: usize) -> VolatilePtr<'static, [T]> {
     VolatilePtr::new(
         NonNull::new(
             core::ptr::slice_from_raw_parts_mut(

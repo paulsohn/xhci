@@ -94,8 +94,8 @@ impl StructuralParameters2 {
 
     /// Returns the maximum number of the elements the Event Ring Segment Table can contain.
     ///
-    /// Note that the `ERST Max` field of the Structural Parameters 2 register contains the exponential
-    /// value, but this method returns the calculated value.
+    /// Note that the `ERST Max` field contains the exponent,
+    /// but this method returns the calculated value.
     #[must_use]
     pub fn event_ring_segment_table_max(self) -> u16 {
         2_u16.pow(self.erst_max())
