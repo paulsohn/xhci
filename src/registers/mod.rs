@@ -110,3 +110,7 @@ pub(crate) unsafe fn addr_len_to_vptr<T>(base: usize, len: usize) -> VolatilePtr
         ).unwrap()
     )
 }
+
+pub(crate) fn vptr_to_addr<T>(vptr: VolatilePtr<'_, T>) -> usize {
+    vptr.as_raw_ptr().as_ptr() as usize
+}

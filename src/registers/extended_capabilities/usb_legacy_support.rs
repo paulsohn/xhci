@@ -1,6 +1,20 @@
 //! USB Legacy Support Capability
 
-// use volatile::VolatilePtr;
+use volatile::VolatilePtr;
+use super::super::addr_to_vptr;
+
+/// The complete set of pointers of USB Legacy Support Capability.
+#[allow(missing_debug_implementations)]
+pub struct Ptrs<'r> {
+    /// The only pointer.
+    pub ptr: VolatilePtr<'r, UsbLegacySupport>
+}
+impl Ptrs<'_> {
+    /// Create the complete set of pointers from the base address.
+    pub unsafe fn new(base: usize) -> Self {
+        Self { ptr: addr_to_vptr(base) }
+    }
+}
 
 /// USB Legacy Support Capability.
 #[derive(Clone, Copy, Debug)]

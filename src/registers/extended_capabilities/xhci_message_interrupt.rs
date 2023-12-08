@@ -1,7 +1,6 @@
 //! xHCI Message Interrupt Capability.
 
 use volatile::VolatilePtr;
-
 use super::super::addr_to_vptr;
 
 /// The complete xHCI Message Interrupt Capability pointers.

@@ -1,11 +1,26 @@
 //! Debug Capability.
 
+use volatile::VolatilePtr;
+use super::super::addr_to_vptr;
 
-/// The entry point to the Debug Capability.
+/// The complete set of pointers of USB Debug Capability.
+#[allow(missing_debug_implementations)]
+pub struct Ptrs<'r> {
+    /// The only pointer.
+    pub ptr: VolatilePtr<'r, UsbDebug>
+}
+impl Ptrs<'_> {
+    /// Create the complete set of pointers from the base address.
+    pub unsafe fn new(base: usize) -> Self {
+        Self { ptr: addr_to_vptr(base) }
+    }
+}
+
+/// USB Debug Capability.
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
-pub struct Debug {
-    /// Capability ID, which is the Capability Header part.
+pub struct UsbDebug {
+    /// The Capability Header part.
     pub dcid: Id, // off 0x00
     /// Doorbell.
     pub dcdb: Doorbell, // off 0x04
@@ -23,7 +38,7 @@ pub struct Debug {
     /// Port Status and Control.
     pub dcportsc: PortStatusAndControl, // off 0x28
     _padding_2c_30: u32,
-    /// Debug Capability Context Pointer.
+    /// USB Debug Capability Context Pointer.
     pub dccp: ContextPointer, // off 0x30
     /// Device Descriptor Info Register 1.
     pub dcddi1: DeviceDescriptorInfo1, // off 0x38
@@ -31,7 +46,7 @@ pub struct Debug {
     pub dcddi2: DeviceDescriptorInfo2, // off 0x3c
 }
 
-/// Debug Capability ID Register.
+/// USB Debug Capability ID Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct Id(u32);
@@ -59,7 +74,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Doorbell Register.
+/// USB Debug Capability Doorbell Register.
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug)]
 pub struct Doorbell(u32);
@@ -72,7 +87,7 @@ impl Doorbell {
     );
 }
 
-/// Debug Capability Event Ring Segment Table Size Register.
+/// USB Debug Capability Event Ring Segment Table Size Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct EventRingSegmentTableSize(u32);
@@ -85,7 +100,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Event Ring Segment Table Base Address Register.
+/// USB Debug Capability Event Ring Segment Table Base Address Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct EventRingSegmentTableBaseAddress(u64);
@@ -103,7 +118,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Event Ring Dequeue Pointer Register.
+/// USB Debug Capability Event Ring Dequeue Pointer Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct EventRingDequeuePointer(u64);
@@ -130,7 +145,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Control Register.
+/// USB Debug Capability Control Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct Control(u32);
@@ -157,7 +172,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Status Register.
+/// USB Debug Capability Status Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct Status(u32);
@@ -174,7 +189,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Port Status and Control Register.
+/// USB Debug Capability Port Status and Control Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct PortStatusAndControl(u32);
@@ -203,7 +218,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Context Pointer Register.
+/// USB Debug Capability Context Pointer Register.
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug)]
 pub struct ContextPointer(u64);
@@ -216,7 +231,7 @@ impl ContextPointer {
     );
 }
 
-/// Debug Capability Device Descriptor Info Register 1
+/// USB Debug Capability Device Descriptor Info Register 1
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct DeviceDescriptorInfo1(u32);
@@ -231,7 +246,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Device Descriptor Info Register 2.
+/// USB Debug Capability Device Descriptor Info Register 2.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct DeviceDescriptorInfo2(u32);

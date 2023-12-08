@@ -1,5 +1,21 @@
 //! HCI Extended Power Management Capability.
 
+use volatile::VolatilePtr;
+use super::super::addr_to_vptr;
+
+/// The complete set of pointers of HCI Extended Power Management Capability.
+#[allow(missing_debug_implementations)]
+pub struct Ptrs<'r> {
+    /// The only pointer.
+    pub ptr: VolatilePtr<'r, HciExtendedPowerManagement>
+}
+impl Ptrs<'_> {
+    /// Create the complete set of pointers from the base address.
+    pub unsafe fn new(base: usize) -> Self {
+        Self { ptr: addr_to_vptr(base) }
+    }
+}
+
 /// HCI Extended Power Management Capability.
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]

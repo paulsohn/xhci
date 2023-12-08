@@ -5,7 +5,6 @@ use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 
 use volatile::VolatilePtr;
-
 use super::super::{addr_to_vptr, addr_len_to_vptr};
 
 /// The complete xHCI Supported Protocol Capability pointers.
