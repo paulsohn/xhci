@@ -23,6 +23,8 @@
 //! slot.set_root_hub_port_number(port_id);
 //! ```
 
+pub mod nodyn;
+
 #[macro_use]
 mod macros;
 
@@ -59,6 +61,7 @@ pub type Slot64Byte = Slot<16>;
 pub type Endpoint32Byte = Endpoint<8>;
 /// 64 byte Endpoint Context.
 pub type Endpoint64Byte = Endpoint<16>;
+
 
 /// Input Context.
 ///
