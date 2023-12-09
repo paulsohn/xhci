@@ -1,97 +1,72 @@
 //! Debug Capability.
 
-use super::ExtendedCapability;
-use accessor::single;
-use accessor::Mapper;
-use bit_field::BitField;
-use core::convert::TryInto;
+use volatile::VolatilePtr;
+use super::super::addr_to_vptr;
 
-/// The entry point to the Debug Capability.
-#[derive(Debug)]
-pub struct Debug<M>
-where
-    M: Mapper + Clone,
-{
-    /// Capability ID.
-    pub dcid: single::ReadWrite<Id, M>,
+/// The complete set of pointers of USB Debug Capability.
+#[allow(missing_debug_implementations)]
+pub struct Ptrs<'r> {
+    /// The only pointer.
+    pub ptr: VolatilePtr<'r, UsbDebug>
+}
+impl Ptrs<'_> {
+    /// Create the complete set of pointers from the base address.
+    pub unsafe fn new(base: usize) -> Self {
+        Self { ptr: addr_to_vptr(base) }
+    }
+}
+
+/// USB Debug Capability.
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+pub struct UsbDebug {
+    /// The Capability Header part.
+    pub dcid: Id, // off 0x00
     /// Doorbell.
-    pub dcdb: single::ReadWrite<Doorbell, M>,
+    pub dcdb: Doorbell, // off 0x04
     /// Event Ring Segment Table Size.
-    pub dcerstsz: single::ReadWrite<EventRingSegmentTableSize, M>,
+    pub dcerstsz: EventRingSegmentTableSize, // off 0x08
+    _padding_0c_10: u32,
     /// Event Ring Segment Table Base Address.
-    pub dcerstba: single::ReadWrite<EventRingSegmentTableBaseAddress, M>,
+    pub dcerstba: EventRingSegmentTableBaseAddress, // off 0x10
     /// Event Ring Dequeue Pointer.
-    pub dcerdp: single::ReadWrite<EventRingDequeuePointer, M>,
+    pub dcerdp: EventRingDequeuePointer, // off 0x18
     /// Control.
-    pub dcctrl: single::ReadWrite<Control, M>,
+    pub dcctrl: Control, // off 0x20
     /// Status.
-    pub dcst: single::ReadWrite<Status, M>,
+    pub dcst: Status, // off 0x24
     /// Port Status and Control.
-    pub dcportsc: single::ReadWrite<PortStatusAndControl, M>,
-    /// Debug Capability Context Pointer.
-    pub dccp: single::ReadWrite<ContextPointer, M>,
+    pub dcportsc: PortStatusAndControl, // off 0x28
+    _padding_2c_30: u32,
+    /// USB Debug Capability Context Pointer.
+    pub dccp: ContextPointer, // off 0x30
     /// Device Descriptor Info Register 1.
-    pub dcddi1: single::ReadWrite<DeviceDescriptorInfo1, M>,
+    pub dcddi1: DeviceDescriptorInfo1, // off 0x38
     /// Device Descriptor Info Register 2.
-    pub dcddi2: single::ReadWrite<DeviceDescriptorInfo2, M>,
-}
-impl<M> Debug<M>
-where
-    M: Mapper + Clone,
-{
-    /// Creates an instance of [`struct@Debug`].
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that the Debug Capability is accessed only through the returned
-    /// accessor.
-    ///
-    /// # Panics
-    ///
-    /// This method panics if `base` is not aligned correctly.
-    pub unsafe fn new(base: usize, mapper: &M) -> Self {
-        macro_rules! m {
-            ($offset:expr) => {
-                single::ReadWrite::new(base + $offset, mapper.clone())
-            };
-        }
-
-        Self {
-            dcid: m!(0x00),
-            dcdb: m!(0x04),
-            dcerstsz: m!(0x08),
-            dcerstba: m!(0x10),
-            dcerdp: m!(0x18),
-            dcctrl: m!(0x20),
-            dcst: m!(0x24),
-            dcportsc: m!(0x28),
-            dccp: m!(0x30),
-            dcddi1: m!(0x38),
-            dcddi2: m!(0x3c),
-        }
-    }
-}
-impl<M> From<Debug<M>> for ExtendedCapability<M>
-where
-    M: Mapper + Clone,
-{
-    fn from(d: Debug<M>) -> Self {
-        ExtendedCapability::Debug(d)
-    }
+    pub dcddi2: DeviceDescriptorInfo2, // off 0x3c
 }
 
-/// Debug Capability ID Register.
+/// USB Debug Capability ID Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct Id(u32);
 impl Id {
     ro_field!(
-        pub, self,
+        pub(self), self,
         self.0; 16..=20,
-        debug_capability_event_ring_segment_table_max,
-        "Debug Capability Event Ring Segment Table Max",
-        u8
+        dcerst_max,
+        "DCERST Max",
+        u32
     );
+
+    /// Returns the maximum number of the elements the Debug Capability Event Ring Segment Table can contain.
+    ///
+    /// Note that the `DCERST Max` field contains the exponent,
+    /// but this method returns the calculated value.
+    #[must_use]
+    pub fn debug_capability_event_ring_segment_table_max(self) -> u16 {
+        2_u16.pow(self.dcerst_max())
+    }
 }
 impl_debug_from_methods! {
     Id {
@@ -99,7 +74,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Doorbell Register.
+/// USB Debug Capability Doorbell Register.
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug)]
 pub struct Doorbell(u32);
@@ -112,7 +87,7 @@ impl Doorbell {
     );
 }
 
-/// Debug Capability Event Ring Segment Table Size Register.
+/// USB Debug Capability Event Ring Segment Table Size Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct EventRingSegmentTableSize(u32);
@@ -125,7 +100,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Event Ring Segment Table Base Address Register.
+/// USB Debug Capability Event Ring Segment Table Base Address Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct EventRingSegmentTableBaseAddress(u64);
@@ -143,7 +118,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Event Ring Dequeue Pointer Register.
+/// USB Debug Capability Event Ring Dequeue Pointer Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct EventRingDequeuePointer(u64);
@@ -170,7 +145,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Control Register.
+/// USB Debug Capability Control Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct Control(u32);
@@ -180,19 +155,8 @@ impl Control {
     rw1s_bit!(pub, self, self.0; 2, halt_out_tr, "Halt OUT TR");
     rw1s_bit!(pub, self, self.0; 3, halt_in_tr, "Halt IN TR");
     rw1c_bit!(pub, self, self.0; 4, dbc_run_change, "DbC Run Change");
-
-    /// Returns the value of the Debug Max Burst Size field.
-    #[must_use]
-    pub fn debug_max_burst_size(self) -> u8 {
-        self.0.get_bits(16..=23).try_into().unwrap()
-    }
-
-    /// Returns the value of the Device Address field.
-    #[must_use]
-    pub fn device_address(self) -> u8 {
-        self.0.get_bits(24..=30).try_into().unwrap()
-    }
-
+    ro_field!(pub, self, self.0; 16..=23, debug_max_burst_size, "Debug Max Burst Size", u8);
+    ro_field!(pub, self, self.0; 24..=30, device_address, "Device Address", u8);
     rw_bit!(pub, self, self.0; 31, debug_capability_enable, "Debug Capability Enable");
 }
 impl_debug_from_methods! {
@@ -208,19 +172,14 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Status Register.
+/// USB Debug Capability Status Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct Status(u32);
 impl Status {
     ro_bit!(pub, self, self.0; 0, event_ring_not_empty, "Event Ring Not Empty");
     ro_bit!(pub, self, self.0; 1, dbc_system_bus_reset, "DbC System Bus Reset");
-
-    /// Returns the value of the Debug Port Number field.
-    #[must_use]
-    pub fn debug_port_number(self) -> u8 {
-        self.0.get_bits(24..=31).try_into().unwrap()
-    }
+    ro_field!(pub, self, self.0; 24..=31, debug_port_number, "Debug Port Number", u8);
 }
 impl_debug_from_methods! {
     Status {
@@ -230,7 +189,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Port Status and Control Register.
+/// USB Debug Capability Port Status and Control Register.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct PortStatusAndControl(u32);
@@ -238,19 +197,8 @@ impl PortStatusAndControl {
     ro_bit!(pub, self, self.0; 0, current_connect_status, "Current Connect Status");
     rw_bit!(pub, self, self.0; 1, port_enabled_disabled, "Port Enabled/Disabled");
     ro_bit!(pub, self, self.0; 4, port_reset, "Port Reset");
-
-    /// Returns the value of the Port Link State field.
-    #[must_use]
-    pub fn port_link_state(self) -> u8 {
-        self.0.get_bits(5..=8).try_into().unwrap()
-    }
-
-    /// Returns the value of the Port Speed field.
-    #[must_use]
-    pub fn port_speed(self) -> u8 {
-        self.0.get_bits(10..=13).try_into().unwrap()
-    }
-
+    rw_field!(pub, self, self.0; 5..=8, port_link_state, "Port Link State", u8);
+    ro_field!(pub, self, self.0; 10..=13, port_speed, "Port Speed", u8);
     rw1c_bit!(pub, self, self.0; 17, connect_status_change, "Connect Status Change");
     rw1c_bit!(pub, self, self.0; 21, port_reset_change, "Port Reset Change");
     rw1c_bit!(pub, self, self.0; 22, port_link_status_change, "Port Link Status Change");
@@ -270,7 +218,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Context Pointer Register.
+/// USB Debug Capability Context Pointer Register.
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug)]
 pub struct ContextPointer(u64);
@@ -283,7 +231,7 @@ impl ContextPointer {
     );
 }
 
-/// Debug Capability Device Descriptor Info Register 1
+/// USB Debug Capability Device Descriptor Info Register 1
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct DeviceDescriptorInfo1(u32);
@@ -298,7 +246,7 @@ impl_debug_from_methods! {
     }
 }
 
-/// Debug Capability Device Descriptor Info Register 2.
+/// USB Debug Capability Device Descriptor Info Register 2.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct DeviceDescriptorInfo2(u32);

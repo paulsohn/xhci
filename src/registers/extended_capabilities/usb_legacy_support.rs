@@ -1,63 +1,41 @@
 //! USB Legacy Support Capability
 
-use super::ExtendedCapability;
-use accessor::{single, Mapper};
+use volatile::VolatilePtr;
+use super::super::addr_to_vptr;
+
+/// The complete set of pointers of USB Legacy Support Capability.
+#[allow(missing_debug_implementations)]
+pub struct Ptrs<'r> {
+    /// The only pointer.
+    pub ptr: VolatilePtr<'r, UsbLegacySupport>
+}
+impl Ptrs<'_> {
+    /// Create the complete set of pointers from the base address.
+    pub unsafe fn new(base: usize) -> Self {
+        Self { ptr: addr_to_vptr(base) }
+    }
+}
 
 /// USB Legacy Support Capability.
-#[derive(Debug)]
-pub struct UsbLegacySupport<M>
-where
-    M: Mapper + Clone,
-{
-    /// The first 4 byte of USB Legacy Support Capability.
-    pub usblegsup: single::ReadWrite<LegSup, M>,
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+pub struct UsbLegacySupport {
+    /// The Capability Header part.
+    pub cap_header: CapabilityHeader,
     /// USB Legacy Support Control/Status.
-    pub usblegctlsts: single::ReadWrite<UsbLegacySupportControlStatus, M>,
-}
-impl<M> UsbLegacySupport<M>
-where
-    M: Mapper + Clone,
-{
-    /// Creates an instance of [`UsbLegacySupport`].
-    ///
-    /// # Safety
-    ///
-    /// `base` must be the correct address to USB Legacy Support Capability.
-    ///
-    /// The caller must ensure that the capability is only accessed through the returned accessor.
-    ///
-    /// # Panics
-    ///
-    /// This method panics if `base` is not aligned correctly.
-    pub unsafe fn new(base: usize, m: M) -> Self {
-        let usblegsup = single::ReadWrite::new(base, m.clone());
-        let usblegctlsts = single::ReadWrite::new(base, m);
-
-        Self {
-            usblegsup,
-            usblegctlsts,
-        }
-    }
-}
-impl<M> From<UsbLegacySupport<M>> for ExtendedCapability<M>
-where
-    M: Mapper + Clone,
-{
-    fn from(u: UsbLegacySupport<M>) -> Self {
-        ExtendedCapability::UsbLegacySupport(u)
-    }
+    pub usblegctlsts: UsbLegacySupportControlStatus,
 }
 
-/// The first 4-byte of the USB Legacy Support Capability.
+/// The Capability Header part of the USB Legacy Support Capability.
 #[repr(transparent)]
 #[derive(Copy, Clone)]
-pub struct LegSup(u32);
-impl LegSup {
+pub struct CapabilityHeader(u32);
+impl CapabilityHeader {
     rw_bit!(pub, self, self.0; 16, hc_bios_owned_semaphore, "HC BIOS Owned Semaphore");
     rw_bit!(pub, self, self.0; 24, hc_os_owned_semaphore, "HC OS Owned Semaphore");
 }
 impl_debug_from_methods! {
-    LegSup {
+    CapabilityHeader {
         hc_bios_owned_semaphore,
         hc_os_owned_semaphore,
     }

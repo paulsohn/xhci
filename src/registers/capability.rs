@@ -1,73 +1,30 @@
 //! Host Controller Capability Registers
 
-use accessor::single;
-use accessor::Mapper;
-// use bit_field::BitField;
-
 /// Host Controller Capability Registers
-#[derive(Debug)]
-pub struct Capability<M>
-where
-    M: Mapper + Clone,
-{
+#[derive(Copy, Clone, Debug)]
+#[repr(C)] // this should ensure the offsets
+pub struct Capability {
     /// Capability Registers Length
-    pub caplength: single::ReadOnly<CapabilityRegistersLength, M>,
+    pub caplength: CapabilityRegistersLength, // off 0x00
+    _padding_01: u8,
     /// Host Controller Interface Version Number
-    pub hciversion: single::ReadOnly<InterfaceVersionNumber, M>,
+    pub hciversion: InterfaceVersionNumber, // off 0x02
     /// Structural Parameters 1
-    pub hcsparams1: single::ReadOnly<StructuralParameters1, M>,
+    pub hcsparams1: StructuralParameters1, // off 0x04
     /// Structural Parameters 2
-    pub hcsparams2: single::ReadOnly<StructuralParameters2, M>,
+    pub hcsparams2: StructuralParameters2, // off 0x08
     /// Structural Parameters 3
-    pub hcsparams3: single::ReadOnly<StructuralParameters3, M>,
+    pub hcsparams3: StructuralParameters3, // off 0x0c
     /// Capability Parameters 1
-    pub hccparams1: single::ReadOnly<CapabilityParameters1, M>,
+    pub hccparams1: CapabilityParameters1, // off 0x10
     /// Doorbell Offset
-    pub dboff: single::ReadOnly<DoorbellOffset, M>,
+    pub dboff: DoorbellOffset, // off 0x14
     /// Runtime Register Space Offset
-    pub rtsoff: single::ReadOnly<RuntimeRegisterSpaceOffset, M>,
+    pub rtsoff: RuntimeRegisterSpaceOffset, // off 0x18
     /// Capability Parameters 2
-    pub hccparams2: single::ReadOnly<CapabilityParameters2, M>,
+    pub hccparams2: CapabilityParameters2, // off 0x1c
     /// Virtualization Based Trusted IO Register Space Offset
-    pub vtiosoff: single::ReadOnly<VirtualizationBasedTrustedIoRegisterSpaceOffset, M>,
-}
-impl<M> Capability<M>
-where
-    M: Mapper + Clone,
-{
-    /// Creates a new accessor to the Host Controller Capability Registers.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that the Host Controller Capability Registers are accessed only
-    /// through this struct.
-    ///
-    /// # Panics
-    ///
-    /// This method panics if `mmio_base` is not aligned correctly.
-    pub unsafe fn new(mmio_base: usize, mapper: &M) -> Self
-    where
-        M: Mapper,
-    {
-        macro_rules! m {
-            ($offset:expr) => {
-                single::ReadOnly::new(mmio_base + $offset, mapper.clone())
-            };
-        }
-
-        Self {
-            caplength: m!(0x00),
-            hciversion: m!(0x02),
-            hcsparams1: m!(0x04),
-            hcsparams2: m!(0x08),
-            hcsparams3: m!(0x0c),
-            hccparams1: m!(0x10),
-            dboff: m!(0x14),
-            rtsoff: m!(0x18),
-            hccparams2: m!(0x1c),
-            vtiosoff: m!(0x20),
-        }
-    }
+    pub vtiosoff: VirtualizationBasedTrustedIoRegisterSpaceOffset, // off 0x20 (implementation-specific)
 }
 
 /// Capability Registers Length
@@ -137,8 +94,8 @@ impl StructuralParameters2 {
 
     /// Returns the maximum number of the elements the Event Ring Segment Table can contain.
     ///
-    /// Note that the `ERST Max` field of the Structural Parameters 2 register contains the exponential
-    /// value, but this method returns the calculated value.
+    /// Note that the `ERST Max` field contains the exponent,
+    /// but this method returns the calculated value.
     #[must_use]
     pub fn event_ring_segment_table_max(self) -> u16 {
         2_u16.pow(self.erst_max())

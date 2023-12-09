@@ -1,14 +1,27 @@
 //! HCI Extended Power Management Capability.
 
-use super::ExtendedCapability;
-use accessor::{single, Mapper};
+use volatile::VolatilePtr;
+use super::super::addr_to_vptr;
+
+/// The complete set of pointers of HCI Extended Power Management Capability.
+#[allow(missing_debug_implementations)]
+pub struct Ptrs<'r> {
+    /// The only pointer.
+    pub ptr: VolatilePtr<'r, HciExtendedPowerManagement>
+}
+impl Ptrs<'_> {
+    /// Create the complete set of pointers from the base address.
+    pub unsafe fn new(base: usize) -> Self {
+        Self { ptr: addr_to_vptr(base) }
+    }
+}
 
 /// HCI Extended Power Management Capability.
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct HciExtendedPowerManagement {
-    _id: u8,
-    _next: u8,
+    // The first two bytes of the Capability Header part.
+    _id_next: u16,
     /// Power Management Capabilities.
     pub pmc: PowerManagementCapabilities,
     /// Power Management Control Status Register.
@@ -16,15 +29,7 @@ pub struct HciExtendedPowerManagement {
     /// PMESR_BSE.
     pub pmcsr_bse: PmesrBse,
     /// Data.
-    pub data: Data,
-}
-impl<M> From<single::ReadWrite<HciExtendedPowerManagement, M>> for ExtendedCapability<M>
-where
-    M: Mapper + Clone,
-{
-    fn from(h: single::ReadWrite<HciExtendedPowerManagement, M>) -> Self {
-        ExtendedCapability::HciExtendedPowerManagementCapability(h)
-    }
+    pub data: u8,
 }
 
 /// Power Management Capabilities.
@@ -85,17 +90,5 @@ impl_debug_from_methods! {
     PmesrBse {
         bpcc_en,
         b2_b3,
-    }
-}
-
-/// Data.
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
-pub struct Data(u8);
-impl Data {
-    /// Returns the wrapped data.
-    #[must_use]
-    pub fn get(self) -> u8 {
-        self.0
     }
 }

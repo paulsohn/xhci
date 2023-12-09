@@ -1,9 +1,5 @@
 //! Host Controller Operational Registers
 
-use super::capability::{Capability, CapabilityRegistersLength};
-use accessor::array;
-use accessor::single;
-use accessor::Mapper;
 use bit_field::BitField;
 use core::convert::TryFrom;
 use core::convert::TryInto;
@@ -13,63 +9,26 @@ use num_traits::FromPrimitive;
 /// Host Controller Operational Registers
 ///
 /// This struct does not contain the Port Register set.
-#[derive(Debug)]
-pub struct Operational<M>
-where
-    M: Mapper + Clone,
-{
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct Operational {
     /// USB Command Register
-    pub usbcmd: single::ReadWrite<UsbCommandRegister, M>,
+    pub usbcmd: UsbCommandRegister, // off 0x00
     /// USB Status Register
-    pub usbsts: single::ReadWrite<UsbStatusRegister, M>,
+    pub usbsts: UsbStatusRegister, // off 0x04
     /// Page Size Register
-    pub pagesize: single::ReadWrite<PageSizeRegister, M>,
+    pub pagesize: PageSizeRegister, // off 0x08
+    _padding_0c_10: u32,
+    _padding_10_14: u32,
     /// Device Notification Control
-    pub dnctrl: single::ReadWrite<DeviceNotificationControl, M>,
+    pub dnctrl: DeviceNotificationControl, // off 0x14
     /// Command Ring Control Register
-    pub crcr: single::ReadWrite<CommandRingControlRegister, M>,
+    pub crcr: CommandRingControlRegister, // off 0x18
+    _padding_20_30: [u32; 4],
     /// Device Context Base Address Array Pointer Register
-    pub dcbaap: single::ReadWrite<DeviceContextBaseAddressArrayPointerRegister, M>,
+    pub dcbaap: DeviceContextBaseAddressArrayPointerRegister, // off 0x30
     /// Configure Register
-    pub config: single::ReadWrite<ConfigureRegister, M>,
-}
-impl<M> Operational<M>
-where
-    M: Mapper + Clone,
-{
-    /// Creates a new accessor to the Host Controller Operational Registers.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that the Host Controller Operational Registers are accessed only
-    /// through this struct.
-    ///
-    /// # Panics
-    ///
-    /// This method panics if the base address of the Host Controller Operational Registers is not
-    /// aligned correctly.
-    pub unsafe fn new(mmio_base: usize, caplength: CapabilityRegistersLength, mapper: &M) -> Self
-    where
-        M: Mapper,
-    {
-        let base = mmio_base + usize::from(caplength.get());
-
-        macro_rules! m {
-            ($offset:expr) => {
-                single::ReadWrite::new(base + $offset, mapper.clone())
-            };
-        }
-
-        Self {
-            usbcmd: m!(0x00),
-            usbsts: m!(0x04),
-            pagesize: m!(0x08),
-            dnctrl: m!(0x14),
-            crcr: m!(0x18),
-            dcbaap: m!(0x30),
-            config: m!(0x38),
-        }
-    }
+    pub config: ConfigureRegister, // off 0x38
 }
 
 /// USB Command Register
@@ -278,45 +237,13 @@ impl_debug_from_methods! {
 #[derive(Copy, Clone, Debug)]
 pub struct PortRegisterSet {
     /// Port Status and Control Register
-    pub portsc: PortStatusAndControlRegister,
+    pub portsc: PortStatusAndControlRegister, // off 0x00
     /// Port PM Status and Control Register
-    pub portpmsc: PortPowerManagementStatusAndControlRegister,
+    pub portpmsc: PortPowerManagementStatusAndControlRegister, // off 0x04
     /// Port Link Info Register
-    pub portli: PortLinkInfoRegister,
+    pub portli: PortLinkInfoRegister, // off 0x08
     /// Port Hardware LPM Control Register
-    pub porthlpmc: PortHardwareLpmControlRegister,
-}
-impl PortRegisterSet {
-    /// Creates a new accessor to the array of the Port Register Set.
-    ///
-    /// # Safety
-    ///
-    /// Caller must ensure that only one accessor is created, otherwise it may cause undefined
-    /// behavior such as data race.
-    ///
-    /// # Panics
-    ///
-    /// This method panics if the base address of the Port Register Sets is not aligned correctly.
-    pub unsafe fn new<M1, M2>(
-        mmio_base: usize,
-        capability: &Capability<M2>,
-        mapper: M1,
-    ) -> array::ReadWrite<Self, M1>
-    where
-        M1: Mapper,
-        M2: Mapper + Clone,
-    {
-        let base = mmio_base + usize::from(capability.caplength.read_volatile().get()) + 0x400;
-        array::ReadWrite::new(
-            base,
-            capability
-                .hcsparams1
-                .read_volatile()
-                .number_of_ports()
-                .into(),
-            mapper,
-        )
-    }
+    pub porthlpmc: PortHardwareLpmControlRegister, // off 0x0c
 }
 
 /// Port Status and Control Register
