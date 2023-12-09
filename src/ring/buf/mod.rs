@@ -153,7 +153,7 @@ macro_rules! add_pushable_ring {
                     };
                     let toggle_cond = (seg_next == 0);
 
-                    let link = Block::new(
+                    let mut link = Block::new(
                         {
                             let seg_next_base = self.segs[seg_next].as_mut_ptr();
                             let mut link = *trb::Link::new()
@@ -165,6 +165,10 @@ macro_rules! add_pushable_ring {
                         }
                         .into_raw(),
                     );
+
+                    if block.chain_bit() {
+                        link.set_chain_bit();
+                    }
 
                     self.write_block_with_cycle_bit(link);
                     self.seg_cur = seg_next;

@@ -31,6 +31,7 @@ impl Block {
     }
 
     rw_bit!([3](0), cycle_bit, "Cycle bit");
+    rw_bit!([3](4), chain_bit, "Chain bit");
 
     /// Returns the value of the TRB Type, or `None` if invalid.
     pub fn trb_type(&self) -> Option<trb::Type> {

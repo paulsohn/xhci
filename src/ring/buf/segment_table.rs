@@ -5,7 +5,7 @@ use bit_field::BitField;
 use core::ops::{Index, IndexMut};
 
 /// The Event Ring Segment Table entry.
-/// This plays the same role as an array pointer, and require special care to guarantee memory safety.
+/// This plays the same role as an array pointer, and requires special care to guarantee memory safety.
 ///
 /// For example, the entry do not implement `Drop` trait, so the user should manually free its memory.
 #[repr(transparent)]
@@ -89,6 +89,7 @@ impl EventRingSegmentTableEntry {
     pub fn ring_segment_size(&self) -> u16 {
         self.0[2].get_bits(0..16) as _
     }
+    
     /// Sets the value of the Ring Segment Size field.
     ///
     /// The value should be entry count.
