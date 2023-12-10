@@ -1,5 +1,9 @@
 //! TRB Ring.
 
+extern crate alloc;
+#[allow(unused_imports)]
+use alloc as _alloc;
+
 pub mod trb;
 
 use trb::event;
