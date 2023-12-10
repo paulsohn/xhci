@@ -7,19 +7,19 @@ use num_derive::FromPrimitive;
 /// 32-byte Input Context.
 pub type Input32Byte = Input<()>;
 /// 64-byte Input Context.
-pub type Input64Byte = Input<[u32; 4]>;
+pub type Input64Byte = Input<[u32; 8]>;
 
 /// 32-byte Output (Device) Context.
 pub type Output32Byte = Output<()>;
 /// 64-byte Output (Device) Context.
-pub type Output64Byte = Output<[u32; 4]>;
+pub type Output64Byte = Output<[u32; 8]>;
 
 /// A Context Pad type.
 /// 
 /// `()` for 32-byte contexts, and `[u32;4]` for 64-byte contexts.
 pub trait ContextPad: Copy + Clone + Default {}
 impl ContextPad for () {}
-impl ContextPad for [u32; 4] {}
+impl ContextPad for [u32; 8] {}
 
 /// The number of Endpoint Contexts in a Device Context.
 pub const NUM_OF_ENDPOINT_CONTEXTS: usize = 31;
@@ -62,6 +62,17 @@ pub trait InputHandler {
     /// This method panics if `dci > 31 || dci == 0`.
     /// Call [`InputHandler::slot`] if you want the Slot Context.
     fn endpoint_mut(&mut self, dci: usize) -> &mut Endpoint;
+}
+impl<PAD: ContextPad> Input<PAD> {
+    /// Creates a new Input Context.
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+impl<PAD: ContextPad> Default for Input<PAD> {
+    fn default() -> Self {
+        Self { control: Default::default(), device: Default::default() }
+    }
 }
 impl<PAD: ContextPad> InputHandler for Input<PAD> {
     fn control(&self) -> &InputControl {
@@ -120,7 +131,18 @@ pub trait OutputHandler {
     /// Call [`InputHandler::slot`] if you want the Slot Context.
     fn endpoint_mut(&mut self, dci: usize) -> &mut Endpoint;
 }
-impl<PAD: ContextPad> OutputHandler for Input<PAD> {
+impl<PAD: ContextPad> Output<PAD> {
+    /// Creates a new Output (Device) Context.
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+impl<PAD: ContextPad> Default for Output<PAD> {
+    fn default() -> Self {
+        Self { device: Default::default() }
+    }
+}
+impl<PAD: ContextPad> OutputHandler for Output<PAD> {
     fn slot(&self) -> &Slot {
         &self.device.slot.0
     }
@@ -144,8 +166,8 @@ impl<PAD: ContextPad> OutputHandler for Input<PAD> {
 
 /// Device Context.
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct Device<PAD> {
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Default)]
+pub(crate) struct Device<PAD: ContextPad> {
     pub(crate) slot: (Slot, PAD),
     pub(crate) endpoints: [(Endpoint, PAD); NUM_OF_ENDPOINT_CONTEXTS],
 }
