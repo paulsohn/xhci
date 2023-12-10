@@ -94,13 +94,13 @@ impl Registers<'_> {
     }
 }
 
-pub(crate) unsafe fn addr_to_vptr<T>(addr: usize) -> VolatilePtr<'static, T> {
+pub(crate) unsafe fn addr_to_vptr<'a, T>(addr: usize) -> VolatilePtr<'a, T> {
     VolatilePtr::new(
         NonNull::new(addr as *mut T).unwrap()
     )
 }
 
-pub(crate) unsafe fn addr_len_to_vptr<T>(base: usize, len: usize) -> VolatilePtr<'static, [T]> {
+pub(crate) unsafe fn addr_len_to_vptr<'a, T>(base: usize, len: usize) -> VolatilePtr<'a, [T]> {
     VolatilePtr::new(
         NonNull::new(
             core::ptr::slice_from_raw_parts_mut(
