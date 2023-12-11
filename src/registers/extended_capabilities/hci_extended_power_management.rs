@@ -17,7 +17,7 @@ impl Ptrs<'_> {
 }
 
 /// HCI Extended Power Management Capability.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, volatile_field::StructuralOf)]
 #[repr(C)]
 pub struct HciExtendedPowerManagement {
     // The first two bytes of the Capability Header part.

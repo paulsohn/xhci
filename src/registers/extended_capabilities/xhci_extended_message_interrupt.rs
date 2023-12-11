@@ -18,7 +18,7 @@ impl Ptrs<'_> {
 
 /// xHCI Extended Message Interrupt Capability.
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, volatile_field::StructuralOf)]
 pub struct XhciExtendedMessageInterrupt {
     // The first two bytes of the Capability Header part.
     _id_next: u16,

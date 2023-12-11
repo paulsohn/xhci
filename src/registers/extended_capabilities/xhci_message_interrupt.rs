@@ -32,7 +32,7 @@ impl Ptrs<'_> {
 }
 
 /// xHCI Message Interrupt Capability.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, /* volatile_field::StructuralOf */)]
 #[repr(C)]
 pub struct XhciMessageInterrupt<const N: usize> {
     // The first two bytes of the Capability Header part.

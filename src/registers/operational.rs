@@ -9,7 +9,7 @@ use num_traits::FromPrimitive;
 /// Host Controller Operational Registers
 ///
 /// This struct does not contain the Port Register set.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, volatile_field::StructuralOf)]
 #[repr(C)]
 pub struct Operational {
     /// USB Command Register
@@ -234,7 +234,7 @@ impl_debug_from_methods! {
 
 /// Port Register Set
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, volatile_field::StructuralOf)]
 pub struct PortRegisterSet {
     /// Port Status and Control Register
     pub portsc: PortStatusAndControlRegister, // off 0x00

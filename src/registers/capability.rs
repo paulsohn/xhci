@@ -1,7 +1,7 @@
 //! Host Controller Capability Registers
 
 /// Host Controller Capability Registers
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, volatile_field::StructuralOf)]
 #[repr(C)] // this should ensure the offsets
 pub struct Capability {
     /// Capability Registers Length

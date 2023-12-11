@@ -17,7 +17,7 @@ impl Ptrs<'_> {
 }
 
 /// USB Legacy Support Capability.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, volatile_field::StructuralOf)]
 #[repr(C)]
 pub struct UsbLegacySupport {
     /// The Capability Header part.

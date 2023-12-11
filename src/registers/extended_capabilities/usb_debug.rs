@@ -17,7 +17,7 @@ impl Ptrs<'_> {
 }
 
 /// USB Debug Capability.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, volatile_field::StructuralOf)]
 #[repr(C)]
 pub struct UsbDebug {
     /// The Capability Header part.

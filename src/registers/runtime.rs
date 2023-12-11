@@ -4,7 +4,7 @@
 ///
 /// Note that this struct does not contain the interrupter register sets. Refer to
 /// [`InterrupterRegisterSet`].
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, volatile_field::StructuralOf)]
 #[repr(C)]
 pub struct Runtime {
     /// Microframe Index Register
@@ -27,7 +27,7 @@ impl_debug_from_methods! {
 
 /// Interrupter Register Set
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, volatile_field::StructuralOf)]
 pub struct InterrupterRegisterSet {
     /// Interrupter Management Register
     pub iman: InterrupterManagementRegister, // off 0x00
