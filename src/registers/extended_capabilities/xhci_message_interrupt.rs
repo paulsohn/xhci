@@ -40,7 +40,7 @@ pub struct XhciMessageInterrupt<const N: usize> {
     /// Message Control.
     pub control: MessageControl,
     /// Message Address.
-    addr: [u32; 2], // `address[1]` should be unused in 32-bit addr mode.
+    addr: [u32; N],
     /// Data.
     pub data: u16,
     _padding: u16,
