@@ -1,8 +1,6 @@
 //! Host Controller Operational Registers
 
 use bit_field::BitField;
-use core::convert::TryFrom;
-use core::convert::TryInto;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 

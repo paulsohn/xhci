@@ -8,7 +8,6 @@ pub mod xhci_local_memory;
 pub mod xhci_message_interrupt;
 pub mod xhci_supported_protocol;
 
-use core::iter::Iterator;
 use core::ptr::NonNull;
 use volatile::VolatilePtr;
 
